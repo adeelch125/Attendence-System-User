@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "258938138093",
+    "project_id": "atandence-system",
+    "storage_bucket": "atandence-system.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258938138093:android:315d986eb4ad6abcbe8be4",
+        "android_client_info": {
+          "package_name": "com.example.attendence_user_pannel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAZULHG14sYiRN6SCUZIKmZ9iR_nmhHrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
