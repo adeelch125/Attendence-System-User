@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:attendence_user_pannel/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Firebase Storage import
 
 import 'auth_service.dart';
 
@@ -15,7 +17,9 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _auth = AuthService();
+  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  bool _isUploading = false; // Tracks image upload state
 
   // Controllers
   final TextEditingController _usernameController = TextEditingController();
@@ -32,6 +36,55 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
+  // Method to pick an image from specified source
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() {
+          _profileImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      log("Error picking image: $e");
+    }
+  }
+
+  // Method to show dialog for image selection
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Choose Image Source"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo,color: Colors.blue,),
+                title: const Text("Gallery"),
+                onTap: () {
+                  _pickImage(ImageSource.gallery);
+                  Navigator.of(context).pop(); // Close dialog
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt,color: Colors.blue,),
+                title: const Text("Camera"),
+                onTap: () {
+                  _pickImage(ImageSource.camera);
+                  Navigator.of(context).pop(); // Close dialog
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Upload image to Firebase Storage
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,6 +99,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               children: <Widget>[
                 // Profile Image with Picker
                 GestureDetector(
+                  onTap: _showImageSourceDialog, // Call dialog on tap
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: _profileImage != null
@@ -56,6 +110,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         : null,
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Upload button, visible only when image is selected
+                if (_profileImage != null)
+                  ElevatedButton(
+                    onPressed: _isUploading ? null : _uploadImageToFirebase,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                    ),
+                    child: _isUploading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                      'Upload',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
                 const SizedBox(height: 20),
 
                 // Username
@@ -191,6 +262,39 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
+  Future<void> _uploadImageToFirebase() async {
+    if (_profileImage == null) return;
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images/${_usernameController.text}.jpg');
+      await storageRef.putFile(_profileImage!);
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      Fluttertoast.showToast(
+        msg: 'Image uploaded successfully!',
+        toastLength: Toast.LENGTH_SHORT,
+      );
+      log("Image uploaded. URL: $downloadUrl");
+    } catch (e) {
+      log("Error uploading image: $e");  // Log the error details
+      Fluttertoast.showToast(
+        msg: 'Failed to upload image',
+        toastLength: Toast.LENGTH_SHORT,
+      );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+
   // Registration function with loading indicator
   void _signUp(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
@@ -210,7 +314,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           );
 
           // Navigate to LoginScreen after successful registration
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => LoginScreen()),
           );

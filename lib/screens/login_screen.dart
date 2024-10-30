@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
             toastLength: Toast.LENGTH_SHORT,
           );
           // Navigate to the DashboardScreen after showing the success toast
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => DashboardScreen()),
           );
@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     filled: true,
                     fillColor: Colors.blue[50],
-                    prefixIcon: Icon(Icons.email, color: Colors.blue),
+                    prefixIcon: const Icon(Icons.email, color: Colors.blue),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
 
                 // Password
                 TextFormField(
@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     filled: true,
                     fillColor: Colors.blue[50],
-                    prefixIcon: Icon(Icons.lock, color: Colors.blue),
+                    prefixIcon: const Icon(Icons.lock, color: Colors.blue),
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -136,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[700],
-                      padding: EdgeInsets.symmetric(vertical: 15),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
