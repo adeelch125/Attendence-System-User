@@ -50,38 +50,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
-  // Method to show dialog for image selection
-  void _showImageSourceDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Choose Image Source"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo,color: Colors.blue,),
-                title: const Text("Gallery"),
-                onTap: () {
-                  _pickImage(ImageSource.gallery);
-                  Navigator.of(context).pop(); // Close dialog
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt,color: Colors.blue,),
-                title: const Text("Camera"),
-                onTap: () {
-                  _pickImage(ImageSource.camera);
-                  Navigator.of(context).pop(); // Close dialog
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
 
   // Upload image to Firebase Storage
 
@@ -114,6 +83,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                 // Upload button, visible only when image is selected
                 if (_profileImage != null)
+
                   ElevatedButton(
                     onPressed: _isUploading ? null : _uploadImageToFirebase,
                     style: ElevatedButton.styleFrom(
@@ -127,6 +97,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
+
+
                 const SizedBox(height: 20),
 
                 // Username
@@ -336,5 +308,38 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         });
       }
     }
+  }
+
+  // Method to show dialog for image selection
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Choose Image Source"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo,color: Colors.blue,),
+                title: const Text("Gallery"),
+                onTap: () {
+                  _pickImage(ImageSource.gallery);
+                  Navigator.of(context).pop(); // Close dialog
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt,color: Colors.blue,),
+                title: const Text("Camera"),
+                onTap: () {
+                  _pickImage(ImageSource.camera);
+                  Navigator.of(context).pop(); // Close dialog
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
