@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:attendence_user_pannel/screens/leave_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -84,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   // Add functionality for marking leave here
+                  Navigator.push(context, MaterialPageRoute(builder: (context)=>LeaveDetailScreen()));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[700],
@@ -121,7 +123,32 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               GestureDetector(
                 onTap: () async {
-               _showImageSourceDialog();
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          ListTile(
+                            leading: const Icon(Icons.camera),
+                            title: const Text('Camera'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _pickImage(ImageSource.camera);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.photo_album),
+                            title: const Text('Gallery'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _pickImage(ImageSource.gallery);
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
                 },
                 child: CircleAvatar(
                   radius: 60,
@@ -227,37 +254,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  void _showImageSourceDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Choose Image Source"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo,color: Colors.blue,),
-                title: const Text("Gallery"),
-                onTap: () {
-                  _pickImage(ImageSource.gallery);
-                  Navigator.of(context).pop(); // Close dialog
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt,color: Colors.blue,),
-                title: const Text("Camera"),
-                onTap: () {
-                  _pickImage(ImageSource.camera);
-                  Navigator.of(context).pop(); // Close dialog
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
 }
