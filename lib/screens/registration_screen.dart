@@ -2,12 +2,15 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:attendence_user_pannel/screens/login_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // Firebase Storage import
 
 import 'auth_service.dart';
+import 'home_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   @override
@@ -36,6 +39,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _checkUserLoggedIn();
+  }
+
   // Method to pick an image from specified source
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -43,6 +52,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
+          _uploadImageToFirebase();
         });
       }
     } catch (e) {
@@ -73,32 +83,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     radius: 50,
                     backgroundImage: _profileImage != null
                         ? FileImage(_profileImage!)
-                        : const AssetImage('assets/profile_placeholder.png') as ImageProvider,
+                        : null,
                     child: _profileImage == null
                         ? Icon(Icons.add_a_photo, size: 30, color: Colors.blue[800])
                         : null,
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Upload button, visible only when image is selected
-                if (_profileImage != null)
-
-                  ElevatedButton(
-                    onPressed: _isUploading ? null : _uploadImageToFirebase,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
-                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-                    ),
-                    child: _isUploading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      'Upload',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-
-
                 const SizedBox(height: 20),
 
                 // Username
@@ -235,28 +225,38 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _uploadImageToFirebase() async {
-    if (_profileImage == null) return;
+    if (_profileImage == null){
+      Fluttertoast.showToast(msg: "Image url is null");
+    }
 
     setState(() {
       _isUploading = true;
     });
 
     try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('profile_images/${_usernameController.text}.jpg');
+      final storageRef = FirebaseStorage.instance.ref()
+          .child('profile_image.jpg');
+
       await storageRef.putFile(_profileImage!);
 
+      // Get download URL after upload
       final downloadUrl = await storageRef.getDownloadURL();
+
       Fluttertoast.showToast(
         msg: 'Image uploaded successfully!',
         toastLength: Toast.LENGTH_SHORT,
       );
       log("Image uploaded. URL: $downloadUrl");
-    } catch (e) {
-      log("Error uploading image: $e");  // Log the error details
+    } on FirebaseException catch (e) {
+      log("Firebase Error uploading image: ${e.message}");
       Fluttertoast.showToast(
         msg: 'Failed to upload image',
+        toastLength: Toast.LENGTH_SHORT,
+      );
+    } catch (e) {
+      log("Error: $e");
+      Fluttertoast.showToast(
+        msg: 'An unexpected error occurred',
         toastLength: Toast.LENGTH_SHORT,
       );
     } finally {
@@ -265,6 +265,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       });
     }
   }
+
 
 
   // Registration function with loading indicator
@@ -307,6 +308,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _checkUserLoggedIn() async {
+    // Check Firebase's current user
+    User? user = FirebaseAuth.instance.currentUser;
+
+    // If user is not null, navigate to HomeScreen
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+    } else {
+      return;
     }
   }
 

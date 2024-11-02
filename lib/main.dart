@@ -2,14 +2,15 @@ import 'package:attendence_user_pannel/screens/registration_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
- const FirebaseOptions firebaseOptions = FirebaseOptions(
-    apiKey: "AIzaSyDAZULHG14sYiRN6SCUZIKmZ9iR_nmhHrU",
-    appId: "1:258938138093:android:315d986eb4ad6abcbe8be4",
-    messagingSenderId: "258938138093",
-    projectId:"atandence-system");
+const FirebaseOptions firebaseOptions = FirebaseOptions(
+  apiKey: "AIzaSyDAZULHG14sYiRN6SCUZIKmZ9iR_nmhHrU",
+  appId: "1:258938138093:android:315d986eb4ad6abcbe8be4",
+  messagingSenderId: "258938138093",
+  projectId: "atandence-system",
+  storageBucket: "atandence-system.appspot.com", // Add your storage bucket here
+);
 
-
-void main()async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: firebaseOptions);
   runApp(const MyApp());
