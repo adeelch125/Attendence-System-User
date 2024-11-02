@@ -70,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[100],
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           // Centered content
@@ -160,14 +160,12 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
 
           // Back Button
-// Back Button
           Positioned(
-            top: 40, // Adjust as needed
-            left: 20, // Adjust as needed
+            top: 40,
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.blue),
               onPressed: () {
-
+                Navigator.pop(context);
               },
             ),
           ),

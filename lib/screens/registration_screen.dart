@@ -22,7 +22,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _auth = AuthService();
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
-  bool _isUploading = false; // Tracks image upload state
+  bool _isUploading = false;
 
   // Controllers
   final TextEditingController _usernameController = TextEditingController();
@@ -30,6 +30,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   File? _profileImage;
+  String? _downloadImageUrl;
 
   @override
   void dispose() {
@@ -45,188 +46,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _checkUserLoggedIn();
   }
 
-  // Method to pick an image from specified source
   Future<void> _pickImage(ImageSource source) async {
     try {
       final pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
-          _uploadImageToFirebase();
         });
+        _uploadImageToFirebase();
       }
     } catch (e) {
       log("Error picking image: $e");
     }
   }
 
-
-
-  // Upload image to Firebase Storage
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue[100],
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                // Profile Image with Picker
-                GestureDetector(
-                  onTap: _showImageSourceDialog, // Call dialog on tap
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: _profileImage != null
-                        ? FileImage(_profileImage!)
-                        : null,
-                    child: _profileImage == null
-                        ? Icon(Icons.add_a_photo, size: 30, color: Colors.blue[800])
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Username
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: const BorderSide(color: Colors.blue),
-                    ),
-                    filled: true,
-                    fillColor: Colors.blue[50],
-                    prefixIcon: const Icon(Icons.person, color: Colors.blue),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your username';
-                    }
-                    if (value.length < 3) {
-                      return 'Username must be at least 3 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                // Email
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: const BorderSide(color: Colors.blue),
-                    ),
-                    filled: true,
-                    fillColor: Colors.blue[50],
-                    prefixIcon: const Icon(Icons.email, color: Colors.blue),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                // Password
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: const BorderSide(color: Colors.blue),
-                    ),
-                    filled: true,
-                    fillColor: Colors.blue[50],
-                    prefixIcon: const Icon(Icons.lock, color: Colors.blue),
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Register Button with Circular Progress Indicator
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : () => _signUp(context),
-                    child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      'Register',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                  ),
-                ),
-
-                // Login Text Row
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "If you have an account, go to ",
-                      style: TextStyle(color: Colors.black, fontSize: 16),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()),
-                        );
-                      },
-                      child: Text(
-                        "Login",
-                        style: TextStyle(
-                          color: Colors.blue[800],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _uploadImageToFirebase() async {
-    if (_profileImage == null){
-      Fluttertoast.showToast(msg: "Image url is null");
+    if (_profileImage == null) {
+      Fluttertoast.showToast(msg: "Image not selected");
+      return;
     }
 
     setState(() {
@@ -234,19 +71,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     });
 
     try {
-      final storageRef = FirebaseStorage.instance.ref()
-          .child('profile_image.jpg');
-
+      final storageRef = FirebaseStorage.instance.ref().child('profile_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
       await storageRef.putFile(_profileImage!);
-
-      // Get download URL after upload
-      final downloadUrl = await storageRef.getDownloadURL();
+      _downloadImageUrl = await storageRef.getDownloadURL();
 
       Fluttertoast.showToast(
         msg: 'Image uploaded successfully!',
         toastLength: Toast.LENGTH_SHORT,
       );
-      log("Image uploaded. URL: $downloadUrl");
+      log("Image uploaded. URL: $_downloadImageUrl");
     } on FirebaseException catch (e) {
       log("Firebase Error uploading image: ${e.message}");
       Fluttertoast.showToast(
@@ -266,11 +99,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
-
-
-  // Registration function with loading indicator
   void _signUp(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
+      if (_downloadImageUrl == null) {
+        Fluttertoast.showToast(msg: "Please upload a profile image.");
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
@@ -280,13 +115,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
+
         if (user != null) {
+          final userData = {
+            "userId": user.uid,
+            "name": _usernameController.text.trim(),
+            "email": _emailController.text.trim(),
+            "imageUrl": _downloadImageUrl
+          };
+
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set(userData);
+
           Fluttertoast.showToast(
             msg: 'Registration successful!',
             toastLength: Toast.LENGTH_SHORT,
           );
 
-          // Navigate to LoginScreen after successful registration
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -311,22 +155,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
-  void _checkUserLoggedIn() async {
-    // Check Firebase's current user
+  void _checkUserLoggedIn() {
     User? user = FirebaseAuth.instance.currentUser;
 
-    // If user is not null, navigate to HomeScreen
     if (user != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
-    } else {
-      return;
+      // Use a post-frame callback to navigate after the widget has been built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      });
     }
   }
 
-  // Method to show dialog for image selection
+
   void _showImageSourceDialog() {
     showDialog(
       context: context,
@@ -337,25 +180,181 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo,color: Colors.blue,),
+                leading: const Icon(Icons.photo, color: Colors.blue),
                 title: const Text("Gallery"),
                 onTap: () {
                   _pickImage(ImageSource.gallery);
-                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop();
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.camera_alt,color: Colors.blue,),
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
                 title: const Text("Camera"),
                 onTap: () {
                   _pickImage(ImageSource.camera);
-                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop();
                 },
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                GestureDetector(
+                  onTap: _showImageSourceDialog,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundImage: _profileImage != null
+                            ? FileImage(_profileImage!)
+                            : null,
+                        child: _profileImage == null
+                            ? Icon(Icons.add_a_photo, size: 30, color: Colors.blue[800])
+                            : null,
+                      ),
+                      if (_isUploading)
+                        CircularProgressIndicator(
+                          color: Colors.black,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.blue[50],
+                    prefixIcon: const Icon(Icons.person, color: Colors.blue),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your username';
+                    }
+                    if (value.length < 3) {
+                      return 'Username must be at least 3 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.blue[50],
+                    prefixIcon: const Icon(Icons.email, color: Colors.blue),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.blue[50],
+                    prefixIcon: const Icon(Icons.lock, color: Colors.blue),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    onPressed: _isLoading ? null : () => _signUp(context),
+                    child: _isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                      'Register',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Already have an account?'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LoginScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Log In',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
