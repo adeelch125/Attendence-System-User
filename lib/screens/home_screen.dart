@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:attendence_user_pannel/screens/leave_detail_screen.dart';
 import 'package:attendence_user_pannel/screens/view_record.dart';
+import 'package:attendence_user_pannel/screens/login_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   String? _downloadImageUrl;
+  final List<String> _titles = ['Home', 'Profile'];
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   bool _isLoading = false;
@@ -38,10 +40,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildLoadingIndicator() {
     return _isLoading
         ? Center(
-            child: CircularProgressIndicator(
-              color: Colors.black,
-            ),
-          )
+      child: CircularProgressIndicator(
+        color: Colors.black,
+      ),
+    )
         : SizedBox.shrink();
   }
 
@@ -51,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final user = _auth.currentUser;
       if (user != null) {
         final userData =
-            await _firestore.collection('users').doc(user.uid).get();
+        await _firestore.collection('users').doc(user.uid).get();
         setState(() {
           _firstNameController.text = userData['name'];
           _emailController.text = userData['email'];
@@ -126,48 +128,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       _setLoading(true);
-      // Get the current date
       final now = DateTime.now();
-      final todayDate = DateTime(now.year, now.month, now.day); // Get the current date without time
-
-      // Create a unique document ID based on the current date
+      final todayDate = DateTime(now.year, now.month, now.day);
       String attendanceDocId = "${todayDate.toIso8601String()}_${user.uid}";
 
-      // Check if attendance record already exists for today
       final attendanceDoc = await _firestore
           .collection('attendance')
           .doc(user.uid)
-          .collection('records') // Sub-collection for daily attendance
+          .collection('records')
           .doc(attendanceDocId)
           .get();
 
       if (attendanceDoc.exists) {
-        // Check if the existing record's timestamp is today
         final existingTimestamp = (attendanceDoc.data()?['timestamp'] as Timestamp?)?.toDate();
         if (existingTimestamp != null && DateTime(existingTimestamp.year, existingTimestamp.month, existingTimestamp.day).isAtSameMomentAs(todayDate)) {
           Fluttertoast.showToast(msg: 'Attendance already marked for today');
-          return; // Exit the method if attendance was already marked
+          return;
         }
       }
 
-      // If attendance not marked yet, fetch user's name from the users collection
       final userData = await _firestore.collection('users').doc(user.uid).get();
-      String userName = userData['name']; // Fetch the user's name
+      String userName = userData['name'];
 
-      // Prepare attendance data
       final attendanceData = {
         "attendanceStatus": "present",
         "timestamp": now,
         "userId": user.uid,
-        "name": userName, // Use the fetched name
+        "name": userName,
       };
 
-      // Save attendance data to Firestore in the attendance collection
       await _firestore
           .collection('attendance')
-          .doc(user.uid) // Use user ID as document ID for user-specific records
-          .collection('records') // Sub-collection for daily attendance records
-          .doc(attendanceDocId) // Use the unique ID for the document
+          .doc(user.uid)
+          .collection('records')
+          .doc(attendanceDocId)
           .set(attendanceData);
 
       Fluttertoast.showToast(msg: 'Attendance marked successfully!');
@@ -179,6 +173,41 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    await _auth.signOut();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+    Fluttertoast.showToast(msg: 'Logged out successfully');
+  }
+
+  void _showLogoutConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to log out?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Yes'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _logout();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -198,191 +227,170 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         backgroundColor: Colors.blue[700],
         automaticallyImplyLeading: false,
+        actions: _selectedIndex == 1
+            ? [
+          IconButton(
+            icon: Icon(Icons.logout, color: Colors.white,),
+            onPressed: _showLogoutConfirmationDialog,
+          ),
+        ]
+            : null,
       ),
       body: Stack(
         children: [
           Center(
             child: _selectedIndex == 0
                 ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 200,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _markAttendance();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[700],
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'Mark Attendance',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: 200,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => LeaveDetailScreen()),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[700],
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'Mark Leave',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: 200,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => ViewRecordScreen()));
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[700],
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'View Record',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: _markAttendance,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      'Mark Attendance',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => LeaveDetailScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      'Mark Leave',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ViewRecordScreen()));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      'View Record',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            )
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: () async {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    ListTile(
-                                      leading: const Icon(Icons.camera),
-                                      title: const Text('Camera'),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        _pickImage(ImageSource.camera);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.photo_album),
-                                      title: const Text('Gallery'),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        _pickImage(ImageSource.gallery);
-                                      },
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          child: CircleAvatar(
-                            backgroundColor: Colors.grey,
-                            radius: 60,
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!)
-                                : (_downloadImageUrl != null
-                                    ? NetworkImage(_downloadImageUrl!)
-                                    : null),
-                            child: (_profileImage == null &&
-                                    _downloadImageUrl == null)
-                                ? const Icon(
-                                    Icons.camera_alt,
-                                    size: 50,
-                                    color: Colors.white,
-                                  )
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              TextFormField(
-                                controller: _firstNameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Full Name',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your Full name';
-                                  }
-                                  return null;
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              ListTile(
+                                leading: const Icon(Icons.camera),
+                                title: const Text('Camera'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _pickImage(ImageSource.camera);
                                 },
                               ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _emailController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-                                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                                      .hasMatch(value)) {
-                                    return 'Please enter a valid email address';
-                                  }
-                                  return null;
+                              ListTile(
+                                leading: const Icon(Icons.photo),
+                                title: const Text('Gallery'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _pickImage(ImageSource.gallery);
                                 },
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: 200,
-                                child: ElevatedButton(
-                                  onPressed: _updateProfile,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue[700],
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
-                                  ),
-                                  child: const Text(
-                                    'Update Profile',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.white),
-                                  ),
-                                ),
                               ),
                             ],
+                          );
+                        },
+                      );
+                    },
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundImage: _profileImage != null
+                          ? FileImage(_profileImage!)
+                          : _downloadImageUrl != null
+                          ? NetworkImage(_downloadImageUrl!)
+                          : AssetImage('assets/default_profile.png')
+                      as ImageProvider,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _firstNameController,
+                          decoration: InputDecoration(labelText: 'Name'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your name';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: InputDecoration(labelText: 'Email'),
+                          readOnly: true,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _updateProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[700],
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 12),
+                          ),
+                          child: const Text(
+                            'Save Profile',
+                            style: TextStyle(
+                                fontSize: 18, color: Colors.white),
                           ),
                         ),
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
           ),
           _buildLoadingIndicator(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.blue[700],
-        items: const <BottomNavigationBarItem>[
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
@@ -393,22 +401,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        onTap: _onItemTapped,
+        selectedItemColor: Colors.blue[700],
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          if (_selectedIndex == 1) {
+            _loadUserData();
+          }
+        },
       ),
     );
-  }
-
-  // Titles for each tab
-  final List<String> _titles = ['Home', 'Profile'];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (_selectedIndex == 1) {
-        _loadUserData();
-      }
-    });
   }
 }

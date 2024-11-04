@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,10 +21,10 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   Widget _buildLoadingIndicator() {
     return _isLoading
         ? Center(
-            child: CircularProgressIndicator(
-              color: Colors.black,
-            ),
-          )
+      child: CircularProgressIndicator(
+        color: Colors.black,
+      ),
+    )
         : SizedBox.shrink();
   }
 
@@ -44,31 +43,31 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
 
     try {
       _setLoading(true);
+
       // If attendance not marked yet, fetch user's name
       final userData = await _firestore.collection('users').doc(user.uid).get();
       String userName = userData['name']; // Fetch the user's name
 
       dynamic now = DateTime.now();
 
-      final attendanceData = {
+      final leaveRequestData = {
         "date": now,
         "email": emailController.text,
         "reason": reasonController.text,
         "userId": user.uid,
         "name": userName, // Use the fetched name
-        "approved": false, // Use the fetched name
+        "leaveStatus": "Pending", // Set the leave status to Pending
       };
 
-      // Save attendance data to Firestore
+      // Save leave request data to Firestore
       await _firestore
-          .collection('leave_requests')
-          .doc(user.uid) // Use user ID as document ID
-          .set(attendanceData); // Merge to avoid overwriting existing records
+          .collection('leave_requests') // Changed collection name to 'attendance'
+          .add(leaveRequestData); // Set the leave request data
 
-      Fluttertoast.showToast(msg: 'Attendance marked successfully!');
+      Fluttertoast.showToast(msg: 'Leave request submitted successfully!');
     } catch (e) {
-      log("Error marking attendance: $e");
-      Fluttertoast.showToast(msg: "Failed to mark attendance");
+      log("Error marking leave: $e");
+      Fluttertoast.showToast(msg: "Failed to submit leave request");
     } finally {
       _setLoading(false);
     }
